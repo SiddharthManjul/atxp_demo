@@ -216,20 +216,31 @@ app.post("/api/texts", async (req: Request, res: Response) => {
   } catch (error) {
     console.error(`Error with MCP tool call:`, error);
 
+    // Determine if this is a timeout error
+    const isTimeout = error instanceof Error &&
+      (error.message.includes('timeout') || error.message.includes('timed out'));
+
+    const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
+
     // Send stage update for MCP tool call error
     sendStageUpdate(
       requestId,
       "mcp-tool-call-error",
-      "Failed to call ATXP MCP tool!",
+      isTimeout
+        ? "MCP request timed out. The service may be slow or unavailable."
+        : "Failed to call ATXP MCP tool!",
       "error"
     );
 
     // Return an error response if MCP tool call fails
-    const errorMessage =
-      error instanceof Error ? error.message : "Unknown error occurred";
-    res
-      .status(500)
-      .json({ error: "Failed to call ATXP MCP tool", details: errorMessage });
+    res.status(500).json({
+      error: "Failed to call ATXP MCP tool",
+      details: errorMessage,
+      isTimeout,
+      suggestion: isTimeout
+        ? "The ATXP MCP server is taking too long to respond. Please check your connection string and try again later."
+        : "Please check your ATXP configuration and try again."
+    });
   }
 });
 

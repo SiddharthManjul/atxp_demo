@@ -160,8 +160,16 @@ function App(): JSX.Element {
       setTexts((prevTexts) => [...prevTexts, response.data]);
       setInputText("");
     } catch (err) {
-      setError("Failed to submit text");
-      console.error("Error submitting text:", err);
+      // Extract detailed error information from axios error
+      if (axios.isAxiosError(err) && err.response?.data) {
+        const errorData = err.response.data;
+        const errorMsg = errorData.suggestion || errorData.details || "Failed to submit text";
+        setError(errorMsg);
+        console.error("Error submitting text:", errorData);
+      } else {
+        setError("Failed to submit text");
+        console.error("Error submitting text:", err);
+      }
     } finally {
       setLoading(false);
     }
